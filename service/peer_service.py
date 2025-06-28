@@ -2,6 +2,10 @@ from flask import Flask, send_from_directory, request, jsonify
 import os
 import socket
 import requests 
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -32,27 +36,36 @@ def send_metadata_to_django(file_id, filename, course_name, course_id, semester,
     except Exception as e:
         print(f"Failed to send metadata to Django: {e}")
 
+class NotesFolderHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        filename = os.path.basename(event.src_path)
+        if filename.endswith('.pdf'):
+            file_id = os.path.splitext(filename)[0]
+            course_name = "Default Course"  # Replace with actual logic if needed
+            course_id = "0000"  # Replace with actual logic if needed
+            semester = "Default Semester"  # Replace with actual logic if needed
+            creator = "Default Creator"  # Replace with actual logic if needed
+            print(f"New file detected: {filename}")
+            send_metadata_to_django(file_id, filename, course_name, course_id, semester, creator)
+
+def start_file_watcher():
+    event_handler = NotesFolderHandler()
+    observer = Observer()
+    observer.schedule(event_handler, NOTES_FOLDER, recursive=False)
+    observer.start()
+    print(f"Watching for changes in: {NOTES_FOLDER}")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
 @app.route('/')
 def index():
     return "Hello, Peer Service!"
-
-@app.route('/file/<file_id>', methods=['POST'])
-def save_file(file_id):
-    
-    filename = f"{file_id}.pdf"
-    file_path = os.path.join(NOTES_FOLDER, filename)
-
-    with open(file_path, 'wb') as f:
-        f.write(request.data) 
-
-    # Example metadata
-    course_name = request.headers.get('Course-Name', 'Unknown Course')
-    course_id = request.headers.get('Course-ID', 'Unknown Course ID')
-    semester = request.headers.get('Semester', 'Unknown Semester')
-    creator = request.headers.get('Creator', 'Unknown Creator')
-
-    send_metadata_to_django(file_id, filename, course_name, course_id, semester, creator)
-    return jsonify({"message": "File saved and metadata sent successfully."})
 
 @app.route('/file/<file_id>', methods=['GET'])
 def serve_file(file_id):
@@ -61,4 +74,7 @@ def serve_file(file_id):
 
 if __name__ == '__main__':
     print(f"Server running on: http://{get_local_ip()}:5000")
+    # Start the file watcher in a separate thread
+    watcher_thread = Thread(target=start_file_watcher, daemon=True)
+    watcher_thread.start()
     app.run(debug=True, host='0.0.0.0', port=5000)
