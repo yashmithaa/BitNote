@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SearchFilter } from './components/filter';
 import { NoteCard } from './components/noteCard';
-import { mockNotes } from './lib/data';
-import { FilterOptions } from './types/note';
+import { fetchNotes } from './lib/data';
+import { Note, FilterOptions } from './types/note';
 
 export default function HomePage() {
+  const [notes, setNotes] = useState<Note[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({
     courseName: '',
@@ -18,16 +19,24 @@ export default function HomePage() {
     uploadedDate: '',
   });
 
+  useEffect(() => {
+    async function loadNotes() {
+      const fetchedNotes = await fetchNotes();
+      setNotes(fetchedNotes);
+    }
+    loadNotes();
+  }, []);
+
   const filteredNotes = useMemo(() => {
-    return mockNotes.filter((note) => {
+    return notes.filter((note) => {
       // Search term filter
-      const matchesSearch = !searchTerm || 
-        Object.values(note).some(value => 
-          value.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch =
+        !searchTerm ||
+        Object.values(note).some((value) =>
+          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-      // Individual filters
-      const matchesFilters = 
+      const matchesFilters =
         (!filters.courseName || note.courseName.toLowerCase().includes(filters.courseName.toLowerCase())) &&
         (!filters.courseId || note.courseId.toLowerCase().includes(filters.courseId.toLowerCase())) &&
         (!filters.semester || note.semester.toLowerCase().includes(filters.semester.toLowerCase())) &&
@@ -38,7 +47,7 @@ export default function HomePage() {
 
       return matchesSearch && matchesFilters;
     });
-  }, [searchTerm, filters]);
+  }, [notes, searchTerm, filters]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -60,7 +69,7 @@ export default function HomePage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing {filteredNotes.length} of {mockNotes.length} notes
+              Showing {filteredNotes.length} of {notes.length} notes
             </p>
           </div>
 
