@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Header } from "./components/header";
+import DotBackgroundDemo from "./components/ui/DotBackgroundDemo";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,7 +20,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Header />
-        <main className="min-h-screen bg-background">{children}</main>
+        <div className="relative min-h-screen w-full">
+          {/* Background */}
+          <div className="fixed inset-0 -z-10">
+            <DotBackgroundDemo />
+          </div>
+          {/* Main content */}
+          <main className="relative min-h-screen text-white">{children}</main>
+        </div>
       </body>
     </html>
   );

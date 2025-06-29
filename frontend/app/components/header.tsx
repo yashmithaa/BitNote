@@ -3,13 +3,13 @@ import { FileText, Upload, Home } from 'lucide-react';
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 text-white py-2 px-5 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link className="mr-6 flex items-center space-x-2" href="/">
             <FileText className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block">
-              P2P Notes
+              BitNote
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">

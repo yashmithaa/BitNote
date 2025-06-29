@@ -31,8 +31,9 @@ export function NoteCard({ note }: NoteCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
+    <Card className="transition-shadow backdrop-filter backdrop-blur bg-opacity-90 bg-blend-overlay hover:shadow-[5px_10px_130px_31px_rgba(9,0,30,1)] hover:bg-slate-950/30 mb-7">
+      <CardContent className='p-6'>
+        
         <div className="flex items-start justify-between">
           <div className="flex-1 space-y-3">
             <div>
@@ -68,14 +69,14 @@ export function NoteCard({ note }: NoteCardProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
                 {note.fileType}
               </Badge>
               <span className="text-xs text-muted-foreground">
                 {note.fileSize}
               </span>
-            </div>
+            </div> */}
           </div>
 
           <Button
