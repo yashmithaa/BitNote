@@ -1,4 +1,5 @@
 from flask import Flask, send_from_directory, request, jsonify
+from flask_cors import CORS
 import os
 import socket
 import requests 
@@ -6,8 +7,10 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
 from threading import Thread
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+CORS(app)
 
 NOTES_FOLDER = os.path.join(os.path.dirname(__file__), 'notes')
 os.makedirs(NOTES_FOLDER, exist_ok=True)
@@ -71,6 +74,33 @@ def index():
 def serve_file(file_id):
     filename = f"{file_id}.pdf"
     return send_from_directory(NOTES_FOLDER, filename)
+
+@app.route('/upload', methods=['POST'])
+def upload_note():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'error': 'No file provided'}), 400
+
+    course_name = request.form.get('courseName')
+    course_id = request.form.get('courseId')
+    semester = request.form.get('semester')
+    creator = request.form.get('creator')
+    peer_ip = request.form.get('peerIp')
+    filename = secure_filename(file.filename)
+    file_id = os.path.splitext(filename)[0]
+
+    file.save(os.path.join(NOTES_FOLDER, filename))
+
+    send_metadata_to_django(
+        file_id=file_id,
+        filename=filename,
+        course_name=course_name,
+        course_id=course_id,
+        semester=semester,
+        creator=creator
+    )
+
+    return jsonify({'message': 'File uploaded and metadata sent'}), 200
 
 if __name__ == '__main__':
     print(f"Server running on: http://{get_local_ip()}:5000")

@@ -13,11 +13,10 @@ export default function UploadPage() {
     semester: '',
     creator: '',
     filename: '',
-    peerIp: '',
     file: null as File | null,
   });
-
-  const [currentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadDate, setUploadDate] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -28,17 +27,35 @@ export default function UploadPage() {
     setFormData(prev => ({ ...prev, file, filename: file?.name || '' }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder for upload functionality
-    console.log('Uploading note:', formData);
-    console.log('Upload date:', currentDate);
-    // Here you would typically send the data to your Flask server
-    alert('Note uploaded successfully! (UI only - no backend integration)');
+    if (!formData.file) return;
+
+    const data = new FormData();
+    data.append('file', formData.file);
+    data.append('courseName', formData.courseName);
+    data.append('courseId', formData.courseId);
+    data.append('semester', formData.semester);
+    data.append('creator', formData.creator);
+
+    try {
+      const res = await fetch('http://127.0.0.1:5000/upload', {
+        method: 'POST',
+        body: data,
+      });
+      if (res.ok) {
+        setUploadSuccess(true);
+        setUploadDate(new Date().toLocaleString());
+      } else {
+        alert('Upload failed.');
+      }
+    } catch (err) {
+      alert('Error uploading note.');
+    }
   };
 
   const isFormValid = formData.courseName && formData.courseId && formData.semester && 
-                     formData.creator && formData.filename && formData.peerIp && formData.file;
+                     formData.creator && formData.filename && formData.file && !uploadSuccess;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -67,10 +84,11 @@ export default function UploadPage() {
                     </label>
                     <Input
                       id="courseName"
-                      placeholder="e.g., Computer Networks"
+                      placeholder="Computer Networks"
                       value={formData.courseName}
                       onChange={(e) => handleInputChange('courseName', e.target.value)}
                       required
+                      disabled={uploadSuccess}
                     />
                   </div>
 
@@ -80,10 +98,11 @@ export default function UploadPage() {
                     </label>
                     <Input
                       id="courseId"
-                      placeholder="e.g., CS301"
+                      placeholder="CS301"
                       value={formData.courseId}
                       onChange={(e) => handleInputChange('courseId', e.target.value)}
                       required
+                      disabled={uploadSuccess}
                     />
                   </div>
                 </div>
@@ -95,10 +114,11 @@ export default function UploadPage() {
                     </label>
                     <Input
                       id="semester"
-                      placeholder="e.g., Fall 2024"
+                      placeholder="Fall 2024"
                       value={formData.semester}
                       onChange={(e) => handleInputChange('semester', e.target.value)}
                       required
+                      disabled={uploadSuccess}
                     />
                   </div>
 
@@ -108,25 +128,13 @@ export default function UploadPage() {
                     </label>
                     <Input
                       id="creator"
-                      placeholder="e.g., John Doe"
+                      placeholder="John"
                       value={formData.creator}
                       onChange={(e) => handleInputChange('creator', e.target.value)}
                       required
+                      disabled={uploadSuccess}
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="peerIp" className="text-sm font-medium">
-                    Peer IP Address *
-                  </label>
-                  <Input
-                    id="peerIp"
-                    placeholder="e.g., 192.168.1.101"
-                    value={formData.peerIp}
-                    onChange={(e) => handleInputChange('peerIp', e.target.value)}
-                    required
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -141,6 +149,7 @@ export default function UploadPage() {
                       accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md"
                       required
                       className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      disabled={uploadSuccess}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -160,17 +169,15 @@ export default function UploadPage() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Upload Date</label>
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{new Date(currentDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}</span>
+                {uploadDate && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Upload Date</label>
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{uploadDate}</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="flex gap-4">
@@ -179,19 +186,29 @@ export default function UploadPage() {
                   disabled={!isFormValid}
                   className="flex-1"
                 >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Note
+                  {uploadSuccess ? (
+                    <span className="flex items-center">
+                      <svg className="mr-2 h-4 w-4 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      Uploaded
+                    </span>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Note
+                    </>
+                  )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => window.history.back()}
+                  disabled={uploadSuccess}
                 >
                   Cancel
                 </Button>
               </div>
 
-              {!isFormValid && (
+              {!isFormValid && !uploadSuccess && (
                 <p className="text-sm text-muted-foreground">
                   Please fill in all required fields and select a file to upload.
                 </p>
@@ -200,15 +217,7 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        <div className="rounded-lg bg-muted p-4">
-          <h3 className="font-medium mb-2">Upload Guidelines</h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Ensure your files are academic notes and appropriate for sharing</li>
-            <li>• Use descriptive filenames that help others identify the content</li>
-            <li>• Make sure your peer IP address is correct for file sharing</li>
-            <li>• Files will be shared directly from your device to other peers</li>
-          </ul>
-        </div>
+        
       </div>
     </div>
   );
