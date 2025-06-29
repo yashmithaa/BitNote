@@ -16,10 +16,16 @@ NOTES_FOLDER = os.path.join(os.path.dirname(__file__), 'notes')
 os.makedirs(NOTES_FOLDER, exist_ok=True)
 
 def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        return socket.gethostbyname_ex(socket.gethostname())[-1][-1]
+        # doesn't have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
     except Exception:
-        return "127.0.0.1"
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 def send_metadata_to_django(file_id, filename, course_name, course_id, semester, creator):
     django_server_url = "http://127.0.0.1:8000/notes/"  
@@ -72,7 +78,8 @@ def index():
 
 @app.route('/file/<file_id>', methods=['GET'])
 def serve_file(file_id):
-    filename = f"{file_id}.pdf"
+    # filename = f"{file_id}.pdf"
+    filename = file_id
     return send_from_directory(NOTES_FOLDER, filename)
 
 @app.route('/upload', methods=['POST'])
@@ -101,6 +108,10 @@ def upload_note():
     )
 
     return jsonify({'message': 'File uploaded and metadata sent'}), 200
+
+@app.route('/ping')
+def ping():
+    return jsonify({'status': 'ok'}), 200
 
 if __name__ == '__main__':
     print(f"Server running on: http://{get_local_ip()}:5000")

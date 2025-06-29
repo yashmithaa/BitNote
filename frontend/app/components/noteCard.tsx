@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Download, Calendar, User, FileText, Server } from 'lucide-react';
 import { Card, CardContent } from '../components/card';
 import { Button } from '../components/button';
@@ -10,9 +11,23 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note }: NoteCardProps) {
-  const handleDownload = () => {
-    // Placeholder for download functionality
-    console.log('Downloading:', note.filename);
+  console.log(note);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    const peerUrl = `http://${note.peerIp}:5000`;
+    try {
+      // Ping the peer
+      const pingRes = await fetch(`${peerUrl}/ping`, { method: 'GET' });
+      if (!pingRes.ok) throw new Error('Peer offline');
+
+      window.location.href = `${peerUrl}/file/${note.filename}`;
+    } catch (err) {
+      alert('This note is not available right now (peer offline).');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -67,9 +82,10 @@ export function NoteCard({ note }: NoteCardProps) {
             onClick={handleDownload}
             className="ml-4 flex items-center gap-2"
             size="sm"
+            disabled={downloading}
           >
             <Download className="h-4 w-4" />
-            Download
+            {downloading ? 'Checking...' : 'Download'}
           </Button>
         </div>
       </CardContent>
